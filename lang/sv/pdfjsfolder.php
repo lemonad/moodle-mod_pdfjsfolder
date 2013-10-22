@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['modulename'] = 'PDF.js folder';
-$string['modulenameplural'] = 'PDF.js folders';
+$string['modulename'] = 'PDF.js-mapp';
+$string['modulenameplural'] = 'PDF.js-mappar';
 $string['modulename_help'] = 'Ett mapp-tillägg byggt på PDF.js med målet att se till att PDF-filer i mappen alltid öppnas i webbläsaren (med valet att ladda ned).';
 
 $string['pdfjsfolder:addinstance'] = 'Lägg till en ny PDF.js-mapp';
