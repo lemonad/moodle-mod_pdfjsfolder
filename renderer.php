@@ -152,8 +152,12 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
                          'subdirs' => array($tree));
 
         $openinnewtab = $pdfjsfolder->get_instance()->openinnewtab;
+        $showdirectlinks = $pdfjsfolder->get_default_config()->showdirectlinks;
 
-        $output .= $this->htmlize_folder($tree, $toptree, $openinnewtab);
+        $output .= $this->htmlize_folder($tree,
+                                         $toptree,
+                                         $openinnewtab,
+                                         $showdirectlinks);
 
         return $output;
     }
@@ -164,9 +168,13 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
      * @param array $tree
      * @param array $dir
      * @param boolean $openinnewtab
+     * @param boolean $showdirectlinks
      * @return string HTML
      */
-    protected function htmlize_folder($tree, $dir, $openinnewtab) {
+    protected function htmlize_folder($tree,
+                                      $dir,
+                                      $openinnewtab,
+                                      $showdirectlinks) {
         if (empty($dir['subdirs']) and empty($dir['files'])) {
             return '';
         }
@@ -193,12 +201,15 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
 
             $output .= html_writer::tag(
                 'li',
-                $divhtml . $this->htmlize_folder($tree, $subdir, $openinnewtab));
+                $divhtml . $this->htmlize_folder($tree,
+                                                 $subdir,
+                                                 $openinnewtab,
+                                                 $showdirectlinks));
         }
 
         foreach ($dir['files'] as $pdf) {
             $filename = $pdf->get_filename();
-            $url = moodle_url::make_pluginfile_url(
+            $fileurl = moodle_url::make_pluginfile_url(
                 $pdf->get_contextid(),
                 $pdf->get_component(),
                 $pdf->get_filearea(),
@@ -208,11 +219,13 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
                 false);
 
             if (file_extension_in_typegroup($filename, 'web_image')) {
-                $image = $url->out(
+                $image = $fileurl->out(
                     false,
                     array('preview' => 'tinyicon',
                           'oid' => $pdf->get_timemodified()));
                 $image = html_writer::empty_tag('img', array('src' => $image));
+                $url = $fileurl;
+                $isimage = true;
             } else {
                 $icon = new pix_icon(file_file_icon($pdf, 24),
                                      $filename,
@@ -221,7 +234,8 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
 
                 $pdfjsfolderurl = new moodle_url(
                     '/mod/pdfjsfolder/pdf.js-b9bceb4/web/viewer.html');
-                $url = $pdfjsfolderurl . '?file=' . $url;
+                $url = $pdfjsfolderurl . '?file=' . $fileurl;
+                $isimage = false;
             }
 
             if ($openinnewtab) {
@@ -238,6 +252,15 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
                 $url,
                 $fileicon . $filenamespan,
                 $linkoptions);
+
+            if (!$isimage && $showdirectlinks) {
+                $directlink = html_writer::link(
+                    $fileurl,
+                    get_string('directlinktext', 'pdfjsfolder'),
+                    $linkoptions);
+                $filelink .= ' ' . html_writer::tag('em', '(' . $directlink . ')');
+            }
+
             $filespan = html_writer::tag(
                 'span',
                 $filelink,

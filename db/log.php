@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $logs = array(
-    array('module'=>'pdfjsfolder', 'action'=>'add', 'mtable'=>'pdfjsfolder', 'field'=>'name'),
-    array('module'=>'pdfjsfolder', 'action'=>'update', 'mtable'=>'pdfjsfolder', 'field'=>'name'),
-    array('module'=>'pdfjsfolder', 'action'=>'view', 'mtable'=>'pdfjsfolder', 'field'=>'name'),
-    array('module'=>'pdfjsfolder', 'action'=>'view all', 'mtable'=>'pdfjsfolder', 'field'=>'name')
+    array('module' => 'pdfjsfolder', 'action' => 'add', 'mtable' => 'pdfjsfolder', 'field' => 'name'),
+    array('module' => 'pdfjsfolder', 'action' => 'update', 'mtable' => 'pdfjsfolder', 'field' => 'name'),
+    array('module' => 'pdfjsfolder', 'action' => 'view', 'mtable' => 'pdfjsfolder', 'field' => 'name'),
+    array('module' => 'pdfjsfolder', 'action' => 'view all', 'mtable' => 'pdfjsfolder', 'field' => 'name')
 );

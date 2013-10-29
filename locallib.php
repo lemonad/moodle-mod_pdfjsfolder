@@ -47,6 +47,9 @@ class pdfjsfolder {
     /** @var stdClass The course module for this pdfjsfolder instance */
     private $coursemodule;
 
+    /** @var stdClass The plugin default configuration */
+    private $defaultconfig;
+
     /** @var string modulename Prevents excessive calls to get_string */
     private static $modulename = null;
 
@@ -272,6 +275,18 @@ class pdfjsfolder {
             return $this->coursemodule;
         }
         return null;
+    }
+
+    /**
+     * Get the default configuration for the plugin.
+     *
+     * @return mixed stdClass|boolean The default configuration
+     */
+    public function get_default_config() {
+        if (!$this->defaultconfig) {
+            $this->defaultconfig = get_config('pdfjsfolder');
+        }
+        return $this->defaultconfig;
     }
 
     /**

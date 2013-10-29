@@ -36,6 +36,8 @@ $string['pluginname'] = 'PDF.js Folder';
 
 $string['pdfjsfolder_defaults_heading'] = 'Default values for PDF.js Folder settings';
 $string['pdfjsfolder_defaults_text'] = 'The values you set here define the default values that are used in the PDF.js Folder settings form when you create a new PDF.js Folder.';
+$string['pdfjsfolder_options_heading'] = 'PDF.js Folder options';
+$string['pdfjsfolder_options_text'] = 'The values you set here change how PDF.js Folders work or are displayed.';
 
 $string['filearea_pdfs'] = 'PDFs';
 
@@ -48,8 +50,11 @@ $string['display'] = 'Display folder contents';
 $string['display_help'] = "If you choose to display the folder contents on a course page, there will be no link to a separate page. The description will be displayed only if \"Display description on course page\" is checked.\n\nAlso note that participants view actions can not be logged in this case.";
 $string['displaypage'] = 'On a separate page';
 $string['displayinline'] = 'Inline on a course page';
+$string['directlinktext'] = 'direct link';
 $string['noautocompletioninline'] = 'Automatic completion on viewing of activity can not be selected together with "Display inline" option.';
 $string['showexpanded'] = 'Show sub-folders expanded';
 $string['showexpanded_help'] = 'If enabled, will display sub-folders expanded by default. Else, sub-folders will display collapsed.';
 $string['openinnewtab'] = 'Open PDFs in new tabs/windows';
 $string['openinnewtab_help'] = 'If enabled, PDFs will open in new tabs or windows rather than in the current tab or window.';
+$string['showdirectlinks'] = 'Show alternative direct links';
+$string['showdirectlinks_help'] = "If enabled, each PDF.js-based link will be followed by a direct link to the PDF.\n\nThis can be useful on mobile devices where PDF.js might use too much memory or be too slow to work satisfactorily.";

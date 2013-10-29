@@ -31,7 +31,20 @@ if ($ADMIN->fulltree) {
         array(RESOURCELIB_DISPLAY_OPEN, RESOURCELIB_DISPLAY_POPUP));
     $defaultdisplayoptions = array(RESOURCELIB_DISPLAY_OPEN);
 
-    // Heading.
+    // Options heading.
+    $settings->add(
+        new admin_setting_heading('pdfjsfolder_options',
+                                  get_string('pdfjsfolder_options_heading', 'pdfjsfolder'),
+                                  get_string('pdfjsfolder_options_text', 'pdfjsfolder')));
+
+    // Flag for whether to show direct links or not.
+    $settings->add(
+        new admin_setting_configcheckbox('pdfjsfolder/showdirectlinks',
+                                         get_string('showdirectlinks', 'pdfjsfolder'),
+                                         get_string('showdirectlinks_help', 'pdfjsfolder'),
+                                         1));
+
+    // Defaults heading.
     $settings->add(
         new admin_setting_heading('pdfjsfolder_defaults',
                                   get_string('pdfjsfolder_defaults_heading', 'pdfjsfolder'),

@@ -36,6 +36,8 @@ $string['pluginname'] = 'PDF.js-mapp';
 
 $string['pdfjsfolder_defaults_heading'] = 'Standardvärden för inställningar för PDF.js-mapp';
 $string['pdfjsfolder_defaults_text'] = 'De värden du sätter här definierar standardvärdena som används av PDF.js-mappens inställningsformulär när du skapar en ny PDF.js-mapp.';
+$string['pdfjsfolder_options_heading'] = 'Alternativ för PDF.js-mapp';
+$string['pdfjsfolder_options_text'] = 'De värden du sätter här ändrar hur PDF.js-mappar fungerar eller visas.';
 
 $string['filearea_pdfs'] = 'PDF:er';
 
@@ -48,8 +50,11 @@ $string['display'] = 'Visa mappinnehåll';
 $string['display_help'] = "Om du väljer att visa mappinnehållet på kurssidan så kommer det inte finnas någon länk till en separat sida. Beskrivningen visas enbart om \"Visa beskrivning på kurssidan\" är ikryssad.\n\nNotera också att deltagarnas visningar inte kan loggas i det här fallet.";
 $string['displaypage'] = 'På en separat sida';
 $string['displayinline'] = 'På kurssidan';
+$string['directlinktext'] = 'direktlänk';
 $string['noautocompletioninline'] = 'Automatiskt slutförande vid visning av aktivitet kan inte väljas tillsammans med alternativet "Visa på kurssidan"';
 $string['showexpanded'] = 'Visa undermappar expanderade';
 $string['showexpanded_help'] = 'Om aktiverat så visas undermappar expanderade som standard. Om inte visas undermappar ihopfällda.';
 $string['openinnewtab'] = 'Öppna PDF:er i nya tabbar/fönster';
 $string['openinnewtab_help'] = 'Om aktiverat så kommer PDF:er öppnas i nya tabbar eller fönster istället för i nuvarande tabb eller fönster.';
+$string['showdirectlinks'] = 'Visa alternativa direktlänkar';
+$string['showdirectlinks_help'] = "Om aktiverat så kommer varje PDF.js-baserad länk följas av en direktlänk till PDF:en.\n\nDet här kan vara användbart för mobila enheter där PDF.js kanske använder för mycket minne eller är för långsamt för att fungera tillfredsställande.";
