@@ -2,6 +2,9 @@ HEAD  -  Changed direct links to links with forced download flag
          set to make the choice one with known outcomes; either
          view a PDF in the browser or download it.
 
+      -  Added next and previous fields in install.xml for Moodle
+         2.4 compatibility.
+
 0.13  -  Added option for additional direct PDF links primarily for
          mobiles/tablets that PDF.js might not always work for due
          to limited memory and/or processor speed.
