@@ -20,8 +20,8 @@ if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '0.8.603';
-PDFJS.build = 'b9bceb4';
+PDFJS.version = '0.8.751';
+PDFJS.build = '585a3d0';
 
 (function pdfjsWrapper() {
   // Use strict in our context only - users might not want it
@@ -43,7 +43,7 @@ PDFJS.build = 'b9bceb4';
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* globals Cmd, ColorSpace, Dict, MozBlobBuilder, Name, PDFJS, Ref */
+/* globals Cmd, ColorSpace, Dict, MozBlobBuilder, Name, PDFJS, Ref, URL */
 
 'use strict';
 
@@ -78,6 +78,98 @@ if (!globalScope.PDFJS) {
 
 globalScope.PDFJS.pdfBug = false;
 
+// All the possible operations for an operator list.
+var OPS = PDFJS.OPS = {
+  // Intentionally start from 1 so it is easy to spot bad operators that will be
+  // 0's.
+  dependency: 1,
+  setLineWidth: 2,
+  setLineCap: 3,
+  setLineJoin: 4,
+  setMiterLimit: 5,
+  setDash: 6,
+  setRenderingIntent: 7,
+  setFlatness: 8,
+  setGState: 9,
+  save: 10,
+  restore: 11,
+  transform: 12,
+  moveTo: 13,
+  lineTo: 14,
+  curveTo: 15,
+  curveTo2: 16,
+  curveTo3: 17,
+  closePath: 18,
+  rectangle: 19,
+  stroke: 20,
+  closeStroke: 21,
+  fill: 22,
+  eoFill: 23,
+  fillStroke: 24,
+  eoFillStroke: 25,
+  closeFillStroke: 26,
+  closeEOFillStroke: 27,
+  endPath: 28,
+  clip: 29,
+  eoClip: 30,
+  beginText: 31,
+  endText: 32,
+  setCharSpacing: 33,
+  setWordSpacing: 34,
+  setHScale: 35,
+  setLeading: 36,
+  setFont: 37,
+  setTextRenderingMode: 38,
+  setTextRise: 39,
+  moveText: 40,
+  setLeadingMoveText: 41,
+  setTextMatrix: 42,
+  nextLine: 43,
+  showText: 44,
+  showSpacedText: 45,
+  nextLineShowText: 46,
+  nextLineSetSpacingShowText: 47,
+  setCharWidth: 48,
+  setCharWidthAndBounds: 49,
+  setStrokeColorSpace: 50,
+  setFillColorSpace: 51,
+  setStrokeColor: 52,
+  setStrokeColorN: 53,
+  setFillColor: 54,
+  setFillColorN: 55,
+  setStrokeGray: 56,
+  setFillGray: 57,
+  setStrokeRGBColor: 58,
+  setFillRGBColor: 59,
+  setStrokeCMYKColor: 60,
+  setFillCMYKColor: 61,
+  shadingFill: 62,
+  beginInlineImage: 63,
+  beginImageData: 64,
+  endInlineImage: 65,
+  paintXObject: 66,
+  markPoint: 67,
+  markPointProps: 68,
+  beginMarkedContent: 69,
+  beginMarkedContentProps: 70,
+  endMarkedContent: 71,
+  beginCompat: 72,
+  endCompat: 73,
+  paintFormXObjectBegin: 74,
+  paintFormXObjectEnd: 75,
+  beginGroup: 76,
+  endGroup: 77,
+  beginAnnotations: 78,
+  endAnnotations: 79,
+  beginAnnotation: 80,
+  endAnnotation: 81,
+  paintJpegXObject: 82,
+  paintImageMaskXObject: 83,
+  paintImageMaskXObjectGroup: 84,
+  paintImageXObject: 85,
+  paintInlineImageXObject: 86,
+  paintInlineImageXObjectGroup: 87
+};
 
 // Use only for debugging purposes. This should not be used in any code that is
 // in mozilla master.
@@ -292,7 +384,7 @@ var MissingDataException = (function MissingDataExceptionClosure() {
   function MissingDataException(begin, end) {
     this.begin = begin;
     this.end = end;
-    this.message = 'Missing data [begin, end)';
+    this.message = 'Missing data [' + begin + ', ' + end + ')';
   }
 
   MissingDataException.prototype = new Error();
@@ -865,7 +957,7 @@ var Promise = PDFJS.Promise = (function PromiseClosure() {
   /**
    * Builds a promise that is resolved when all the passed in promises are
    * resolved.
-   * @param {Promise[]} promises Array of promises to wait for.
+   * @param {array} array of data and/or promises to wait for.
    * @return {Promise} New dependant promise.
    */
   Promise.all = function Promise_all(promises) {
@@ -885,7 +977,7 @@ var Promise = PDFJS.Promise = (function PromiseClosure() {
     }
     for (var i = 0, ii = promises.length; i < ii; ++i) {
       var promise = promises[i];
-      promise.then((function(i) {
+      var resolve = (function(i) {
         return function(value) {
           if (deferred._status === STATUS_REJECTED) {
             return;
@@ -895,9 +987,22 @@ var Promise = PDFJS.Promise = (function PromiseClosure() {
           if (unresolved === 0)
             deferred.resolve(results);
         };
-      })(i), reject);
+      })(i);
+      if (Promise.isPromise(promise)) {
+        promise.then(resolve, reject);
+      } else {
+        resolve(promise);
+      }
     }
     return deferred;
+  };
+
+  /**
+   * Checks if the value is likely a promise (has a 'then' function).
+   * @return {boolean} true if x is thenable
+   */
+  Promise.isPromise = function Promise_isPromise(value) {
+    return value && typeof value.then === 'function';
   };
 
   Promise.prototype = {
@@ -913,7 +1018,7 @@ var Promise = PDFJS.Promise = (function PromiseClosure() {
       }
 
       if (status == STATUS_RESOLVED &&
-          value && typeof(value.then) === 'function') {
+          Promise.isPromise(value)) {
         value.then(this._updateStatus.bind(this, STATUS_RESOLVED),
                    this._updateStatus.bind(this, STATUS_REJECTED));
         return;
@@ -1024,10 +1129,38 @@ PDFJS.createBlob = function createBlob(data, contentType) {
   return bb.getBlob(contentType);
 };
 
+PDFJS.createObjectURL = (function createObjectURLClosure() {
+  if (typeof URL !== 'undefined' && URL.createObjectURL) {
+    return function createObjectURL(data, contentType) {
+      var blob = PDFJS.createBlob(data, contentType);
+      return URL.createObjectURL(blob);
+    };
+  }
+
+  // Blob/createObjectURL is not available, falling back to data schema.
+  var digits =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+
+  return function createObjectURL(data, contentType) {
+    var buffer = 'data:' + contentType + ';base64,';
+    for (var i = 0, ii = data.length; i < ii; i += 3) {
+      var b1 = data[i] & 0xFF;
+      var b2 = data[i + 1] & 0xFF;
+      var b3 = data[i + 2] & 0xFF;
+      var d1 = b1 >> 2, d2 = ((b1 & 3) << 4) | (b2 >> 4);
+      var d3 = i + 1 < ii ? ((b2 & 0xF) << 2) | (b3 >> 6) : 64;
+      var d4 = i + 2 < ii ? (b3 & 0x3F) : 64;
+      buffer += digits[d1] + digits[d2] + digits[d3] + digits[d4];
+    }
+    return buffer;
+  };
+})();
+
 function MessageHandler(name, comObj) {
   this.name = name;
   this.comObj = comObj;
   this.callbackIndex = 1;
+  this.postMessageTransfers = true;
   var callbacks = this.callbacks = {};
   var ah = this.actionHandler = {};
 
@@ -1094,8 +1227,9 @@ MessageHandler.prototype = {
    * @param {String} actionName Action to call.
    * @param {JSON} data JSON data to send.
    * @param {function} [callback] Optional callback that will handle a reply.
+   * @param {Array} [transfers] Optional list of transfers/ArrayBuffers
    */
-  send: function messageHandlerSend(actionName, data, callback) {
+  send: function messageHandlerSend(actionName, data, callback, transfers) {
     var message = {
       action: actionName,
       data: data
@@ -1105,16 +1239,20 @@ MessageHandler.prototype = {
       this.callbacks[callbackId] = callback;
       message.callbackId = callbackId;
     }
-    this.comObj.postMessage(message);
+    if (transfers && this.postMessageTransfers) {
+      this.comObj.postMessage(message, transfers);
+    } else {
+      this.comObj.postMessage(message);
+    }
   }
 };
 
-function loadJpegStream(id, imageData, objs) {
+function loadJpegStream(id, imageUrl, objs) {
   var img = new Image();
   img.onload = (function loadJpegStream_onloadClosure() {
     objs.resolve(id, img);
   });
-  img.src = 'data:image/jpeg;base64,' + window.btoa(imageData);
+  img.src = imageUrl;
 }
 
 
@@ -1231,6 +1369,11 @@ var ColorSpace = (function ColorSpaceClosure() {
         return this.singletons.rgb;
       case 'DeviceCmykCS':
         return this.singletons.cmyk;
+      case 'CalGrayCS':
+        var whitePoint = IR[1].WhitePoint;
+        var blackPoint = IR[1].BlackPoint;
+        var gamma = IR[1].Gamma;
+        return new CalGrayCS(whitePoint, blackPoint, gamma);
       case 'PatternCS':
         var basePatternCS = IR[1];
         if (basePatternCS)
@@ -1306,7 +1449,8 @@ var ColorSpace = (function ColorSpaceClosure() {
         case 'CMYK':
           return 'DeviceCmykCS';
         case 'CalGray':
-          return 'DeviceGrayCS';
+          var params = cs[1].getAll();
+          return ['CalGrayCS', params];
         case 'CalRGB':
           return 'DeviceRgbCS';
         case 'ICCBased':
@@ -1727,6 +1871,113 @@ var DeviceCmykCS = (function DeviceCmykCSClosure() {
 })();
 
 //
+// CalGrayCS: Based on "PDF Reference, Sixth Ed", p.245
+//
+var CalGrayCS = (function CalGrayCSClosure() {
+  function CalGrayCS(whitePoint, blackPoint, gamma) {
+    this.name = 'CalGray';
+    this.numComps = 3;
+    this.defaultColor = new Float32Array([0, 0, 0]);
+
+    if (!whitePoint) {
+      error('WhitePoint missing - required for color space CalGray');
+    }
+    blackPoint = blackPoint || [0, 0, 0];
+    gamma = gamma || 1;
+
+    // Translate arguments to spec variables.
+    this.XW = whitePoint[0];
+    this.YW = whitePoint[1];
+    this.ZW = whitePoint[2];
+
+    this.XB = blackPoint[0];
+    this.YB = blackPoint[1];
+    this.ZB = blackPoint[2];
+
+    this.G = gamma;
+
+    // Validate variables as per spec.
+    if (this.XW < 0 || this.ZW < 0 || this.YW !== 1) {
+      error('Invalid WhitePoint components for ' + this.name +
+            ', no fallback available');
+    }
+
+    if (this.XB < 0 || this.YB < 0 || this.ZB < 0) {
+      info('Invalid BlackPoint for ' + this.name + ', falling back to default');
+      this.XB = this.YB = this.ZB = 0;
+    }
+
+    if (this.XB !== 0 || this.YB !== 0 || this.ZB !== 0) {
+      TODO(this.name + ', BlackPoint: XB: ' + this.XB + ', YB: ' + this.YB +
+           ', ZB: ' + this.ZB + ', only default values are supported.');
+    }
+
+    if (this.G < 1) {
+      info('Invalid Gamma: ' + this.G + ' for ' + this.name +
+           ', falling back to default');
+      this.G = 1;
+    }
+  }
+
+  CalGrayCS.prototype = {
+    getRgb: function CalGrayCS_getRgb(src, srcOffset) {
+      var rgb = new Uint8Array(3);
+      this.getRgbItem(src, srcOffset, rgb, 0);
+      return rgb;
+    },
+    getRgbItem: function CalGrayCS_getRgbItem(src, srcOffset,
+                                              dest, destOffset) {
+      // A represents a gray component of a calibrated gray space.
+      // A <---> AG in the spec
+      var A = src[srcOffset];
+      var AG = Math.pow(A, this.G);
+
+      // Computes intermediate variables M, L, N as per spec.
+      // Except if other than default BlackPoint values are used.
+      var M = this.XW * AG;
+      var L = this.YW * AG;
+      var N = this.ZW * AG;
+
+      // Decode XYZ, as per spec.
+      var X = M;
+      var Y = L;
+      var Z = N;
+
+      // http://www.poynton.com/notes/colour_and_gamma/ColorFAQ.html, Ch 4.
+      // This yields values in range [0, 100].
+      var Lstar = Math.max(116 * Math.pow(Y, 1 / 3) - 16, 0);
+
+      // Convert values to rgb range [0, 255].
+      dest[destOffset] = Lstar * 255 / 100;
+      dest[destOffset + 1] = Lstar * 255 / 100;
+      dest[destOffset + 2] = Lstar * 255 / 100;
+    },
+    getRgbBuffer: function CalGrayCS_getRgbBuffer(src, srcOffset, count,
+                                                  dest, destOffset, bits) {
+      // TODO: This part is copied from DeviceGray. Make this utility function.
+      var scale = 255 / ((1 << bits) - 1);
+      var j = srcOffset, q = destOffset;
+      for (var i = 0; i < count; ++i) {
+        var c = (scale * src[j++]) | 0;
+        dest[q++] = c;
+        dest[q++] = c;
+        dest[q++] = c;
+      }
+    },
+    getOutputLength: function CalGrayCS_getOutputLength(inputLength) {
+      return inputLength * 3;
+    },
+    isPassthrough: ColorSpace.prototype.isPassthrough,
+    createRgbBuffer: ColorSpace.prototype.createRgbBuffer,
+    isDefaultDecode: function CalGrayCS_isDefaultDecode(decodeMap) {
+      return ColorSpace.isDefaultDecode(decodeMap, this.numComps);
+    },
+    usesZeroToOneRange: true
+  };
+  return CalGrayCS;
+})();
+
+//
 // LabCS: Based on "PDF Reference, Sixth Ed", p.250
 //
 var LabCS = (function LabCSClosure() {
@@ -1866,6 +2117,7 @@ var LabCS = (function LabCSClosure() {
   };
   return LabCS;
 })();
+
 
 
 var PatternType = {
@@ -3316,9 +3568,9 @@ var Annotation = (function AnnotationClosure() {
 
       resourcesPromise.then(function(resources) {
         var opList = new OperatorList();
-        opList.addOp('beginAnnotation', [data.rect, transform, matrix]);
+        opList.addOp(OPS.beginAnnotation, [data.rect, transform, matrix]);
         evaluator.getOperatorList(this.appearance, resources, opList);
-        opList.addOp('endAnnotation', []);
+        opList.addOp(OPS.endAnnotation, []);
         promise.resolve(opList);
       }.bind(this));
 
@@ -3412,12 +3664,12 @@ var Annotation = (function AnnotationClosure() {
       annotationPromises.push(annotations[i].getOperatorList(partialEvaluator));
     }
     Promise.all(annotationPromises).then(function(datas) {
-      opList.addOp('beginAnnotations', []);
+      opList.addOp(OPS.beginAnnotations, []);
       for (var i = 0, n = datas.length; i < n; ++i) {
         var annotOpList = datas[i];
         opList.addOpList(annotOpList);
       }
-      opList.addOp('endAnnotations', []);
+      opList.addOp(OPS.endAnnotations, []);
       annotationsReadyPromise.resolve();
     }, reject);
 
@@ -3593,10 +3845,10 @@ var TextWidgetAnnotation = (function TextWidgetAnnotationClosure() {
       data.rgb = [0, 0, 0];
       // TODO THIS DOESN'T MAKE ANY SENSE SINCE THE fnArray IS EMPTY!
       for (var i = 0, n = fnArray.length; i < n; ++i) {
-        var fnName = appearanceFnArray[i];
+        var fnId = appearanceFnArray[i];
         var args = appearanceArgsArray[i];
 
-        if (fnName === 'setFont') {
+        if (fnId === OPS.setFont) {
           data.fontRefName = args[0];
           var size = args[1];
           if (size < 0) {
@@ -3606,9 +3858,9 @@ var TextWidgetAnnotation = (function TextWidgetAnnotationClosure() {
             data.fontDirection = 1;
             data.fontSize = size;
           }
-        } else if (fnName === 'setFillRGBColor') {
+        } else if (fnId === OPS.setFillRGBColor) {
           data.rgb = args;
-        } else if (fnName === 'setFillGray') {
+        } else if (fnId === OPS.setFillGray) {
           var rgbValue = args[0] * 255;
           data.rgb = [rgbValue, rgbValue, rgbValue];
         }
@@ -3744,7 +3996,7 @@ var LinkAnnotation = (function LinkAnnotationClosure() {
     if (action) {
       var linkType = action.get('S').name;
       if (linkType === 'URI') {
-        var url = action.get('URI');
+        var url = addDefaultProtocolToUrl(action.get('URI'));
         // TODO: pdf spec mentions urls can be relative to a Base
         // entry in the dictionary.
         if (!isValidUrl(url, false)) {
@@ -3778,6 +4030,14 @@ var LinkAnnotation = (function LinkAnnotationClosure() {
       var dest = dict.get('Dest');
       data.dest = isName(dest) ? dest.name : dest;
     }
+  }
+
+  // Lets URLs beginning with 'www.' default to using the 'http://' protocol.
+  function addDefaultProtocolToUrl(url) {
+    if (url.indexOf('www.') === 0) {
+      return ('http://' + url);
+    }
+    return url;
   }
 
   Util.inherit(LinkAnnotation, Annotation, {
@@ -3831,9 +4091,63 @@ PDFJS.maxImageSize = PDFJS.maxImageSize === undefined ? -1 : PDFJS.maxImageSize;
  * @var {Boolean}
  */
 PDFJS.disableFontFace = PDFJS.disableFontFace === undefined ?
-                        false :
-                        PDFJS.disableFontFace;
+                        false : PDFJS.disableFontFace;
 
+/**
+ * Path for image resources, mainly for annotation icons. Include trailing
+ * slash.
+ * @var {String}
+ */
+PDFJS.imageResourcesPath = PDFJS.imageResourcesPath === undefined ?
+                           '' : PDFJS.imageResourcesPath;
+
+/**
+ * Disable the web worker and run all code on the main thread. This will happen
+ * automatically if the browser doesn't support workers or sending typed arrays
+ * to workers.
+ * @var {Boolean}
+ */
+PDFJS.disableWorker = PDFJS.disableWorker === undefined ?
+                      false : PDFJS.disableWorker;
+
+/**
+ * Path and filename of the worker file. Required when the worker is enabled in
+ * development mode. If unspecified in the production build, the worker will be
+ * loaded based on the location of the pdf.js file.
+ * @var {String}
+ */
+PDFJS.workerSrc = PDFJS.workerSrc === undefined ? null : PDFJS.workerSrc;
+
+/**
+ * Disable range request loading of PDF files. When enabled and if the server
+ * supports partial content requests then the PDF will be fetched in chunks.
+ * Enabled (false) by default.
+ * @var {Boolean}
+ */
+PDFJS.disableRange = PDFJS.disableRange === undefined ?
+                     false : PDFJS.disableRange;
+
+/**
+ * Disable pre-fetching of PDF file data. When range requests are enabled PDF.js
+ * will automatically keep fetching more data even if it isn't needed to display
+ * the current page. This default behavior can be disabled.
+ * @var {Boolean}
+ */
+PDFJS.disableAutoFetch = PDFJS.disableAutoFetch === undefined ?
+                         false : PDFJS.disableAutoFetch;
+
+/**
+ * Enables special hooks for debugging PDF.js.
+ * @var {Boolean}
+ */
+PDFJS.pdfBug = PDFJS.pdfBug === undefined ? false : PDFJS.pdfBug;
+
+/**
+ * Enables transfer usage in postMessage for ArrayBuffers.
+ * @var {boolean}
+ */
+PDFJS.postMessageTransfers = PDFJS.postMessageTransfers === undefined ?
+                             true : PDFJS.postMessageTransfers;
 /**
  * This is the main entry point for loading a PDF and interacting with it.
  * NOTE: If a URL is used to fetch the PDF data a standard XMLHttpRequest(XHR)
@@ -3847,6 +4161,9 @@ PDFJS.disableFontFace = PDFJS.disableFontFace === undefined ?
  *  - data  - A typed array with PDF data.
  *  - httpHeaders - Basic authentication headers.
  *  - password - For decrypting password-protected PDFs.
+ *  - initialData - A typed array with the first portion or all of the pdf data.
+ *                  Used by the extension since some data is already loaded
+ *                  before the switch to range requests. 
  *
  * @param {object} pdfDataRangeTransport is optional. It is used if you want
  * to manually serve range requests for data in the PDF. See viewer.js for
@@ -3937,6 +4254,14 @@ var PDFDocumentProxy = (function PDFDocumentProxyClosure() {
       return this.transport.getPage(number);
     },
     /**
+     * @param {object} Must have 'num' and 'gen' properties.
+     * @return {Promise} A promise that is resolved with the page index that is
+     * associated with the reference.
+     */
+    getPageIndex: function PDFDocumentProxy_getPageIndex(ref) {
+      return this.transport.getPageIndex(ref);
+    },
+    /**
      * @return {Promise} A promise that is resolved with a lookup table for
      * mapping named destinations to reference numbers.
      */
@@ -4010,6 +4335,9 @@ var PDFDocumentProxy = (function PDFDocumentProxyClosure() {
      */
     dataLoaded: function PDFDocumentProxy_dataLoaded() {
       return this.transport.dataLoaded();
+    },
+    cleanup: function PDFDocumentProxy_cleanup() {
+      this.transport.startCleanup();
     },
     destroy: function PDFDocumentProxy_destroy() {
       this.transport.destroy();
@@ -4230,10 +4558,10 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
      */
     _renderPageChunk: function PDFPageProxy_renderPageChunk(operatorListChunk) {
       // Add the new chunk to the current operator list.
-      Util.concatenateToArray(this.operatorList.fnArray,
-                              operatorListChunk.fnArray);
-      Util.concatenateToArray(this.operatorList.argsArray,
-                              operatorListChunk.argsArray);
+      for (var i = 0, ii = operatorListChunk.length; i < ii; i++) {
+        this.operatorList.fnArray.push(operatorListChunk.fnArray[i]);
+        this.operatorList.argsArray.push(operatorListChunk.argsArray[i]);
+      }
       this.operatorList.lastChunk = operatorListChunk.lastChunk;
 
       // Notify all the rendering tasks there are more operators to be consumed.
@@ -4274,7 +4602,7 @@ var WorkerTransport = (function WorkerTransportClosure() {
     // as it arrives on the worker. Chrome added this with version 15.
     if (!globalScope.PDFJS.disableWorker && typeof Worker !== 'undefined') {
       var workerSrc = PDFJS.workerSrc;
-      if (typeof workerSrc === 'undefined') {
+      if (!workerSrc) {
         error('No PDFJS.workerSrc specified');
       }
 
@@ -4285,21 +4613,34 @@ var WorkerTransport = (function WorkerTransportClosure() {
         var messageHandler = new MessageHandler('main', worker);
         this.messageHandler = messageHandler;
 
-        messageHandler.on('test', function transportTest(supportTypedArray) {
+        messageHandler.on('test', function transportTest(data) {
+          var supportTypedArray = data && data.supportTypedArray;
           if (supportTypedArray) {
             this.worker = worker;
+            if (!data.supportTransfers) {
+              PDFJS.postMessageTransfers = false;
+            }
             this.setupMessageHandler(messageHandler);
+            workerInitializedPromise.resolve();
           } else {
             globalScope.PDFJS.disableWorker = true;
-            this.setupFakeWorker();
+            this.loadFakeWorkerFiles().then(function() {
+              this.setupFakeWorker();
+              workerInitializedPromise.resolve();
+            }.bind(this));
           }
-          workerInitializedPromise.resolve();
         }.bind(this));
 
-        var testObj = new Uint8Array(1);
-        // Some versions of Opera throw a DATA_CLONE_ERR on
-        // serializing the typed array.
-        messageHandler.send('test', testObj);
+        var testObj = new Uint8Array([PDFJS.postMessageTransfers ? 255 : 0]);
+        // Some versions of Opera throw a DATA_CLONE_ERR on serializing the
+        // typed array. Also, checking if we can use transfers.
+        try {
+          messageHandler.send('test', testObj, null, [testObj.buffer]);
+        } catch (ex) {
+          info('Cannot use postMessage transfers');
+          testObj[0] = 0;
+          messageHandler.send('test', testObj);
+        }
         return;
       } catch (e) {
         info('The worker has been disabled.');
@@ -4533,7 +4874,7 @@ var WorkerTransport = (function WorkerTransportClosure() {
       }, this);
 
       messageHandler.on('JpegDecode', function(data, promise) {
-        var imageData = data[0];
+        var imageUrl = data[0];
         var components = data[1];
         if (components != 3 && components != 1)
           error('Only 3 component or 1 component can be returned');
@@ -4563,8 +4904,7 @@ var WorkerTransport = (function WorkerTransportClosure() {
           }
           promise.resolve({ data: buf, width: width, height: height});
         }).bind(this);
-        var src = 'data:image/jpeg;base64,' + window.btoa(imageData);
-        img.src = src;
+        img.src = imageUrl;
       });
     },
 
@@ -4603,6 +4943,16 @@ var WorkerTransport = (function WorkerTransportClosure() {
       return promise;
     },
 
+    getPageIndex: function WorkerTransport_getPageIndexByRef(ref) {
+      var promise = new PDFJS.Promise();
+      this.messageHandler.send('GetPageIndex', { ref: ref },
+        function (pageIndex) {
+          promise.resolve(pageIndex);
+        }
+      );
+      return promise;
+    },
+
     getAnnotations: function WorkerTransport_getAnnotations(pageIndex) {
       this.messageHandler.send('GetAnnotationsRequest',
         { pageIndex: pageIndex });
@@ -4616,6 +4966,21 @@ var WorkerTransport = (function WorkerTransportClosure() {
         }
       );
       return promise;
+    },
+
+    startCleanup: function WorkerTransport_startCleanup() {
+      this.messageHandler.send('Cleanup', null,
+        function endCleanup() {
+          for (var i = 0, ii = this.pageCache.length; i < ii; i++) {
+            var page = this.pageCache[i];
+            if (page) {
+              page.destroy();
+            }
+          }
+          this.commonObjs.clear();
+          FontLoader.clear();
+        }.bind(this)
+      );
     }
   };
   return WorkerTransport;
@@ -4836,7 +5201,7 @@ var InternalRenderTask = (function InternalRenderTaskClosure() {
                                         this.operatorListIdx,
                                         this._continue.bind(this),
                                         this.stepper);
-      if (this.operatorListIdx === this.operatorList.fnArray.length) {
+      if (this.operatorListIdx === this.operatorList.argsArray.length) {
         this.running = false;
         if (this.operatorList.lastChunk) {
           this.gfx.endDrawing();
@@ -5365,37 +5730,6 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
   var EO_CLIP = {};
 
   CanvasGraphics.prototype = {
-    slowCommands: {
-      'stroke': true,
-      'closeStroke': true,
-      'fill': true,
-      'eoFill': true,
-      'fillStroke': true,
-      'eoFillStroke': true,
-      'closeFillStroke': true,
-      'closeEOFillStroke': true,
-      'showText': true,
-      'showSpacedText': true,
-      'setStrokeColorSpace': true,
-      'setFillColorSpace': true,
-      'setStrokeColor': true,
-      'setStrokeColorN': true,
-      'setFillColor': true,
-      'setFillColorN': true,
-      'setStrokeGray': true,
-      'setFillGray': true,
-      'setStrokeRGBColor': true,
-      'setFillRGBColor': true,
-      'setStrokeCMYKColor': true,
-      'setFillCMYKColor': true,
-      'paintJpegXObject': true,
-      'paintImageXObject': true,
-      'paintInlineImageXObject': true,
-      'paintInlineImageXObjectGroup': true,
-      'paintImageMaskXObject': true,
-      'paintImageMaskXObjectGroup': true,
-      'shadingFill': true
-    },
 
     beginDrawing: function CanvasGraphics_beginDrawing(viewport, transparency) {
       // For pdfs that use blend modes we have to clear the canvas else certain
@@ -5447,8 +5781,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
 
       var commonObjs = this.commonObjs;
       var objs = this.objs;
-      var fnName;
-      var slowCommands = this.slowCommands;
+      var fnId;
 
       while (true) {
         if (stepper && i === stepper.nextBreakPoint) {
@@ -5456,10 +5789,10 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
           return i;
         }
 
-        fnName = fnArray[i];
+        fnId = fnArray[i];
 
-        if (fnName !== 'dependency') {
-          this[fnName].apply(this, argsArray[i]);
+        if (fnId !== OPS.dependency) {
+          this[fnId].apply(this, argsArray[i]);
         } else {
           var deps = argsArray[i];
           for (var n = 0, nn = deps.length; n < nn; n++) {
@@ -5486,10 +5819,10 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
           return i;
         }
 
-        // If the execution took longer then a certain amount of time, shedule
+        // If the execution took longer then a certain amount of time, schedule
         // to continue exeution after a short delay.
         // However, this is only possible if a 'continueCallback' is passed in.
-        if (continueCallback && slowCommands[fnName] && Date.now() > endTime) {
+        if (continueCallback && Date.now() > endTime) {
           setTimeout(continueCallback, 0);
           return i;
         }
@@ -6415,6 +6748,12 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       var bounds = Util.getAxialAlignedBoundingBox(
                     group.bbox,
                     currentCtx.mozCurrentTransform);
+      // Clip the bounding box to the current canvas.
+      var canvasBounds = [0,
+                          0,
+                          currentCtx.canvas.width,
+                          currentCtx.canvas.height];
+      bounds = Util.intersect(bounds, canvasBounds) || [0, 0, 0, 0];
       // Use ceil in case we're between sizes so we don't create canvas that is
       // too small and make the canvas at least 1x1 pixels.
       var drawnWidth = Math.max(Math.ceil(bounds[2] - bounds[0]), 1);
@@ -6770,6 +7109,10 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
     }
   };
 
+  for (var op in OPS) {
+    CanvasGraphics.prototype[OPS[op]] = CanvasGraphics.prototype[op];
+  }
+
   return CanvasGraphics;
 })();
 
@@ -6789,6 +7132,12 @@ var FontLoader = {
 
     var styleSheet = styleElement.sheet;
     styleSheet.insertRule(rule, styleSheet.cssRules.length);
+  },
+  clear: function fontLoaderClear() {
+    var styleElement = document.getElementById('PDFJS_FONT_STYLE_TAG');
+    if (styleElement) {
+      styleElement.parentNode.removeChild(styleElement);
+    }
   },
   get loadTestFont() {
     // This is a CFF font with 1 glyph for '.' that fills its entire width and
