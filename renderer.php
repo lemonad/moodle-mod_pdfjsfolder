@@ -152,12 +152,12 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
                          'subdirs' => array($tree));
 
         $openinnewtab = $pdfjsfolder->get_instance()->openinnewtab;
-        $showdirectlinks = $pdfjsfolder->get_default_config()->showdirectlinks;
+        $showdownloadlinks = $pdfjsfolder->get_default_config()->showdownloadlinks;
 
         $output .= $this->htmlize_folder($tree,
                                          $toptree,
                                          $openinnewtab,
-                                         $showdirectlinks);
+                                         $showdownloadlinks);
 
         return $output;
     }
@@ -168,13 +168,13 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
      * @param array $tree
      * @param array $dir
      * @param boolean $openinnewtab
-     * @param boolean $showdirectlinks
+     * @param boolean $showdownloadlinks
      * @return string HTML
      */
     protected function htmlize_folder($tree,
                                       $dir,
                                       $openinnewtab,
-                                      $showdirectlinks) {
+                                      $showdownloadlinks) {
         if (empty($dir['subdirs']) and empty($dir['files'])) {
             return '';
         }
@@ -204,7 +204,7 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
                 $divhtml . $this->htmlize_folder($tree,
                                                  $subdir,
                                                  $openinnewtab,
-                                                 $showdirectlinks));
+                                                 $showdownloadlinks));
         }
 
         foreach ($dir['files'] as $pdf) {
@@ -253,12 +253,12 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
                 $fileicon . $filenamespan,
                 $linkoptions);
 
-            if (!$isimage && $showdirectlinks) {
-                $directlink = html_writer::link(
+            if (!$isimage && $showdownloadlinks) {
+                $downloadlink = html_writer::link(
                     $fileurl,
-                    get_string('directlinktext', 'pdfjsfolder'),
+                    get_string('downloadlinktext', 'pdfjsfolder'),
                     $linkoptions);
-                $filelink .= ' ' . html_writer::tag('em', '(' . $directlink . ')');
+                $filelink .= ' ' . html_writer::tag('em', '(' . $downloadlink . ')');
             }
 
             $filespan = html_writer::tag(

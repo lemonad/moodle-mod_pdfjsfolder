@@ -37,11 +37,11 @@ if ($ADMIN->fulltree) {
                                   get_string('pdfjsfolder_options_heading', 'pdfjsfolder'),
                                   get_string('pdfjsfolder_options_text', 'pdfjsfolder')));
 
-    // Flag for whether to show direct links or not.
+    // Flag for whether to show download links or not.
     $settings->add(
-        new admin_setting_configcheckbox('pdfjsfolder/showdirectlinks',
-                                         get_string('showdirectlinks', 'pdfjsfolder'),
-                                         get_string('showdirectlinks_help', 'pdfjsfolder'),
+        new admin_setting_configcheckbox('pdfjsfolder/showdownloadlinks',
+                                         get_string('showdownloadlinks', 'pdfjsfolder'),
+                                         get_string('showdownloadlinks_help', 'pdfjsfolder'),
                                          1));
 
     // Defaults heading.

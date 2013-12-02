@@ -36,9 +36,8 @@ There are a few options:
 *  Should folder contents be shown inline on the course page or on a separate
    page?
 *  Should subfolders be shown expanded or not?
-*  Should an alternative direct link be displayed for each PDF so that users
-   with devices not capable of displaying all PDFs through PDF.js have another
-   option?
+*  Should download links be displayed for each PDF so that users with devices
+   not capable of displaying all PDFs through PDF.js have another option?
 
 Example screenshots
 -------------------
