@@ -1,4 +1,4 @@
-HEAD  -  Changed direct links to links with forced download flag
+0.14  -  Changed direct links to links with forced download flag
          set to make the choice one with known outcomes; either
          view a PDF in the browser or download it.
 
