@@ -9,7 +9,7 @@ In most cases, the handling of PDFs should be left under the control of
 the user but in some cases there are valid reasons to try to standardize
 the experience.
 
-Pdfjsfolder is a Moodle 2.5+ plugin intended to make sure that PDFs always
+Pdfjsfolder is a Moodle 2.4+ plugin intended to make sure that PDFs always
 open in the browser (with the option of downloading), regardless of if the
 user is using a desktop or mobile device.
 
