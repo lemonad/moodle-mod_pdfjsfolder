@@ -408,7 +408,7 @@ function pdfjsfolder_pluginfile($course,
     }
 
     // Default cache lifetime is 86400s.
-    send_stored_file($file);
+    send_stored_file($file, 86400, 0, $forcedownload);
 }
 
 /**

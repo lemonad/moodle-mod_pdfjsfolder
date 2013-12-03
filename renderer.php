@@ -222,6 +222,15 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
                 $filename,
                 false);
 
+            $fileurlforcedownload = moodle_url::make_pluginfile_url(
+                $pdf->get_contextid(),
+                $pdf->get_component(),
+                $pdf->get_filearea(),
+                $pdf->get_itemid(),
+                $pdf->get_filepath(),
+                $filename,
+                true);
+
             if (file_extension_in_typegroup($filename, 'web_image')) {
                 $image = $fileurl->out(
                     false,
@@ -259,7 +268,7 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
 
             if (!$isimage && $showdownloadlinks) {
                 $downloadlink = html_writer::link(
-                    $fileurl,
+                    $fileurlforcedownload,
                     get_string('downloadlinktext', 'pdfjsfolder'),
                     $linkoptions);
                 $filelink .= ' ' . html_writer::tag('em', '(' . $downloadlink . ')');

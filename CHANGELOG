@@ -3,7 +3,7 @@ HEAD  -  Changed direct links to links with forced download flag
          view a PDF in the browser or download it.
 
       -  Added next and previous fields in install.xml for Moodle
-         2.4 compatibility.
+         2.4 compatibility as well as a few other code tweaks.
 
       -  Updated pdf.js to version 585a3d0.
 
