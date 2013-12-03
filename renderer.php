@@ -39,7 +39,11 @@ class mod_pdfjsfolder_renderer extends plugin_renderer_base {
     public function pdf_header($pdfjsfolder, cm_info $cm) {
         $output = '';
 
-        $name = $cm->get_formatted_name();
+        if (method_exists($cm, 'get_formatted_name')) {
+            $name = $cm->get_formatted_name();
+        } else {
+            $name = format_string($cm->name, true, null);
+        }
         $title = $this->page->course->shortname . ': ' . $name;
 
         $context = context_module::instance($cm->id);
