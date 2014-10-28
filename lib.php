@@ -433,7 +433,7 @@ function pdfjsfolder_reset_userdata($data) {
 function pdfjsfolder_cm_info_dynamic(cm_info $cm) {
     // The field 'customdata' is filled in only if folder is to be
     // shown inline.
-    if ($cm->get_custom_data()) {
+    if ($cm->customdata) {
         $cm->set_no_view_link();
     }
 }
@@ -448,7 +448,7 @@ function pdfjsfolder_cm_info_view(cm_info $cm) {
     global $PAGE, $DB;
 
     if ($cm->uservisible &&
-            $cm->get_custom_data() &&
+            $cm->customdata &&
             has_capability('mod/pdfjsfolder:view', $cm->context)) {
         require_once(dirname(__FILE__) . '/locallib.php');
 
